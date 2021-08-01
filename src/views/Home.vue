@@ -22,6 +22,7 @@
 <script>
 import "mapbox-gl/dist/mapbox-gl.css";
 import mapboxgl from "mapbox-gl"; // or "const mapboxgl = require('mapbox-gl');"
+import polyline from "@mapbox/polyline";
 
 export default {
   mounted: function () {
@@ -45,7 +46,7 @@ export default {
   },
   methods: {
     doMapBox: function () {
-      var center = [12.5993, 55.6929];
+      var center = [-88.0342, 42.1103];
       mapboxgl.accessToken = process.env.VUE_APP_MAP_BOX_API_KEY;
       const map = new mapboxgl.Map({
         container: "map", // container ID
@@ -54,7 +55,7 @@ export default {
         zoom: 9, // starting zoom
       });
       this.places.forEach((place) => {
-        console.log(place);
+        // console.log(place);
         new mapboxgl.Marker()
           .setLngLat([place.lng, place.lat])
           .addTo(map)
@@ -62,77 +63,11 @@ export default {
             new mapboxgl.Popup({ offset: 25 }).setText(place.description)
           );
       });
+
       var encodedPolyline =
         "oud`GvptxOo@DA@hAHz@AvAZTb@HhAVt@LRVH`@@HJET_@Fe@?CACGKa@MYS[UJ]TU`@CbAG^ITeAlAY^I\\Qb@MLIFURa@AaAt@SV_AxBMPM@y@O[a@O[_@i@a@]Y]UQwAs@}AU[QQYWWSm@OUQe@eAs@}@cAo@g@WMwAIq@@QCc@BQEWIQSe@mAw@_@OS[Qe@MmBAyAB[CgABYFSWOYUAo@ZU@G?SMSm@?w@@OOcB@aACa@BMCOUo@SqA@_@DYAUJcAAUH_ACm@Da@E[Ni@?M?OGOMIKUKa@Aa@Da@IiALo@Da@FOB[AWBa@G]?]P}BI_AAq@KyA?i@Ug@EQ@a@FQ@aAA_@KiADe@FODq@?KHk@?UGu@?]BOEOBM?OOk@[_@m@k@_@wAYe@WIaAy@cASWb@]HOAq@O]MUG[MOCQMKg@Ag@J_Ab@sAGY[Us@OWOYg@Ig@M_@GMg@k@UC[FOHi@PaAo@]u@a@_@QSK_@i@m@w@m@UKU_@O_@Ko@Qg@_@o@w@y@eBeCM_@AINc@Di@Q[I[J_@F{@?eAKg@TaCCOOU]QIOIe@_@m@GUI_@ASBQZ]N]\\[DKNMb@MXOZE^Bp@Tb@@\\CLIVKl@c@Tg@\\QNSBa@CWF_@Xm@VONQROPG\\Az@[LSLIr@eAPM`A_@f@C^JNL~@ZTB\\AZIz@YTMHO`@[r@Oj@GTILKh@URUd@_@VM\\KfAkAf@W`A]k@T[ZUJQPq@t@e@^YHc@b@YRk@Z{@Na@B_@XG@YXWNk@Pq@HS?o@MYMQQWQ_@GSDWRw@b@Q^k@v@i@b@iAJ[Pi@`@MLW|@Ab@";
-      var polyline = {};
-      polyline.decode = function (str, precision) {
-        var index = 0,
-          lat = 0,
-          lng = 0,
-          coordinates = [],
-          shift = 0,
-          result = 0,
-          byte = null,
-          latitude_change,
-          longitude_change,
-          factor = Math.pow(10, precision || 5);
-
-        // Coordinates have variable length when encoded, so just keep
-        // track of whether we've hit the end of the string. In each
-        // loop iteration, a single coordinate is decoded.
-        while (index < str.length) {
-          // Reset shift, result, and byte
-          byte = null;
-          shift = 0;
-          result = 0;
-
-          do {
-            byte = str.charCodeAt(index++) - 63;
-            result |= (byte & 0x1f) << shift;
-            shift += 5;
-          } while (byte >= 0x20);
-
-          latitude_change = result & 1 ? ~(result >> 1) : result >> 1;
-
-          shift = result = 0;
-
-          do {
-            byte = str.charCodeAt(index++) - 63;
-            result |= (byte & 0x1f) << shift;
-            shift += 5;
-          } while (byte >= 0x20);
-
-          longitude_change = result & 1 ? ~(result >> 1) : result >> 1;
-
-          lat += latitude_change;
-          lng += longitude_change;
-
-          coordinates.push([lat / factor, lng / factor]);
-        }
-
-        return coordinates;
-      };
-
-      function flipped(coords) {
-        var flipped = [];
-        for (var i = 0; i < coords.length; i++) {
-          flipped.push(coords[i].slice().reverse());
-        }
-        return flipped;
-      }
-      polyline.toGeoJSON = function (str, precision) {
-        var coords = polyline.decode(str, precision);
-        return {
-          type: "LineString",
-          coordinates: flipped(coords),
-        };
-      };
-
-      if (typeof module === "object" && module.exports) {
-        module.exports = polyline;
-      }
-      var coords = polyline.toGeoJSON(encodedPolyline);
-      console.log(coords);
+      var coords = polyline.decode(encodedPolyline);
+      coords = coords.map((array) => [array[1], array[0]]);
       map.on("load", function () {
         map.addSource("route", {
           type: "geojson",
@@ -141,7 +76,7 @@ export default {
             properties: {},
             geometry: {
               type: "LineString",
-              coordinates: coords.coordinates,
+              coordinates: coords,
             },
           },
         });
